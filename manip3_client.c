@@ -30,7 +30,7 @@ void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
 }
 
 int main(int argc, char *argv[]) {
-  int socket_fd = establishConnection(8081);
+  int socket_fd = establishConnection(8082);
 
   char *sendBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
   char *receiveBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
@@ -40,6 +40,8 @@ int main(int argc, char *argv[]) {
   }
 
   write(1, ">>", 2);
+
+  sendMSG(socket_fd, sendBuffer, receiveBuffer);
 
   int n = 60;
   while (n--) {

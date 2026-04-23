@@ -33,7 +33,7 @@ void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
 }
 
 int main(int argc, char *argv[]) {
-  int server_fd = bindPort(8081);
+  int server_fd = bindPort(8082);
 
   if (listen(server_fd, 5) < 0) {
     perror("listen error");
@@ -62,17 +62,18 @@ int main(int argc, char *argv[]) {
 
   printf("write a message\n");
 
-  receiveMSG(server_fd, sendBuffer, receiveBuffer);
+  receiveMSG(client_fd, sendBuffer, receiveBuffer);
 
   int n = 60;
   while (n--) {
-    sendMSG(server_fd, sendBuffer, receiveBuffer);
+    sendMSG(client_fd, sendBuffer, receiveBuffer);
     sleep(1);
   }
-  receiveMSG(server_fd, sendBuffer, receiveBuffer);
+  receiveMSG(client_fd, sendBuffer, receiveBuffer);
 
   free(sendBuffer);
   free(receiveBuffer);
   close(server_fd);
+  close(client_fd);
   return 0;
 }

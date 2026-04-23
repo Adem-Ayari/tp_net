@@ -26,7 +26,7 @@ int establishConnection(int port) {
   struct sockaddr_in serverAddr;
   serverAddr.sin_family = AF_INET;
   serverAddr.sin_port = htons(port);
-  if (inet_aton("127.0.0.1", &serverAddr.sin_addr) == 0) {
+  if (inet_aton("0.0.0.0", &serverAddr.sin_addr) == 0) {
     perror("error binding address");
     close(socket_fd);
     exit(EXIT_FAILURE);
