@@ -1,3 +1,4 @@
+#include "utilities.c"
 #include "utilities.h"
 #include <arpa/inet.h>
 #include <stdio.h>
@@ -8,14 +9,15 @@
 
 void sendMSG(int socket_fd, char *sendBuffer, char *receiveBuffer,
              struct sockaddr_in *serverAddr, socklen_t serverLen) {
-  ssize_t readBytes = read(0, sendBuffer, 1024 * 1024 - 1);
+  ssize_t readBytes = read(0, sendBuffer, BUF_SIZE - 1);
   if (readBytes < 0) {
     gracefulExit(socket_fd, "error reading from stdin", sendBuffer,
                  receiveBuffer);
   }
   sendBuffer[readBytes] = '\0';
 
-  ssize_t sendBytes = send(socket_fd, sendBuffer, readBytes, 0);
+  ssize_t sendBytes = sendto(socket_fd, sendBuffer, readBytes, 0,
+                             (const struct sockaddr *)serverAddr, serverLen);
   if (sendBytes < 0) {
     gracefulExit(socket_fd, "sendto error", sendBuffer, receiveBuffer);
   }
@@ -23,7 +25,7 @@ void sendMSG(int socket_fd, char *sendBuffer, char *receiveBuffer,
 
 void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
   ssize_t received =
-      recvfrom(socket_fd, receiveBuffer, 1024 * 1024 - 1, 0, NULL, NULL);
+      recvfrom(socket_fd, receiveBuffer, BUF_SIZE - 1, 0, NULL, NULL);
   if (received > 0) {
     receiveBuffer[received] = '\0';
     printf("received: %s\n", receiveBuffer);
@@ -41,7 +43,7 @@ int main(int argc, char *argv[]) {
 
   struct sockaddr_in serverAddr;
   serverAddr.sin_family = AF_INET;
-  serverAddr.sin_port = htons(8082);
+  serverAddr.sin_port = htons(PORT);
   if (inet_aton("127.0.0.1", &serverAddr.sin_addr) == 0) {
     perror("invalid address");
     close(socket_fd);
@@ -49,8 +51,8 @@ int main(int argc, char *argv[]) {
   }
   socklen_t serverLen = sizeof(serverAddr);
 
-  char *sendBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
-  char *receiveBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
+  char *sendBuffer = (char *)malloc(sizeof(char) * BUF_SIZE);
+  char *receiveBuffer = (char *)malloc(sizeof(char) * BUF_SIZE);
 
   if (!sendBuffer || !receiveBuffer) {
     gracefulExit(socket_fd, "allocation error", sendBuffer, receiveBuffer);

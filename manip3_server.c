@@ -23,7 +23,7 @@ void sendMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
   }
 }
 void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
-  ssize_t received = recv(socket_fd, receiveBuffer, 1024 * 1024 - 1, 0);
+  ssize_t received = recv(socket_fd, receiveBuffer, BUF_SIZE - 1, 0);
   if (received > 0) {
     receiveBuffer[received] = '\0';
     printf("received: %s", receiveBuffer);
@@ -33,7 +33,7 @@ void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
 }
 
 int main(int argc, char *argv[]) {
-  int server_fd = bindPort(8082);
+  int server_fd = bindPort(PORT);
 
   if (listen(server_fd, 5) < 0) {
     perror("listen error");
@@ -53,8 +53,8 @@ int main(int argc, char *argv[]) {
 
   printf("Client connected.\n");
 
-  char *sendBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
-  char *receiveBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
+  char *sendBuffer = (char *)malloc(sizeof(char) * BUF_SIZE);
+  char *receiveBuffer = (char *)malloc(sizeof(char) * BUF_SIZE);
 
   if (!sendBuffer || !receiveBuffer) {
     gracefulExit(server_fd, "allocation error", sendBuffer, receiveBuffer);

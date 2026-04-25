@@ -1,4 +1,5 @@
 #include "utilities.c"
+#include "utilities.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -7,7 +8,7 @@
 
 void sendMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
   ssize_t readBytes;
-  if ((readBytes = read(0, sendBuffer, 1024 * 1024 - 1)) < 0) {
+  if ((readBytes = read(0, sendBuffer, BUF_SIZE - 1)) < 0) {
     gracefulExit(socket_fd, "error reading from stdin", sendBuffer,
                  receiveBuffer);
   }
@@ -20,7 +21,7 @@ void sendMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
   }
 }
 void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
-  ssize_t received = recv(socket_fd, receiveBuffer, 1024 * 1024 - 1, 0);
+  ssize_t received = recv(socket_fd, receiveBuffer, BUF_SIZE - 1, 0);
   if (received > 0) {
     receiveBuffer[received] = '\0';
     printf("received: %s", receiveBuffer);
@@ -30,10 +31,10 @@ void receiveMSG(int socket_fd, char *sendBuffer, char *receiveBuffer) {
 }
 
 int main(int argc, char *argv[]) {
-  int socket_fd = establishConnection(8082);
+  int socket_fd = establishConnection(PORT);
 
-  char *sendBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
-  char *receiveBuffer = (char *)malloc(sizeof(char) * 1024 * 1024);
+  char *sendBuffer = (char *)malloc(sizeof(char) * BUF_SIZE);
+  char *receiveBuffer = (char *)malloc(sizeof(char) * BUF_SIZE);
 
   if (!sendBuffer || !receiveBuffer) {
     gracefulExit(socket_fd, "allocation error", sendBuffer, receiveBuffer);
