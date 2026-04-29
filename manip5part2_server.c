@@ -10,6 +10,38 @@
 #include <time.h>
 #include <unistd.h>
 
+void handleTime(int client_fd, char *sendBuffer, char *receiveBuffer) {
+  int n = 60;
+  while (n--) {
+    time_t t;
+    time(&t);
+    char *timeStr = ctime(&t);
+    strcpy(sendBuffer, timeStr);
+    ssize_t len = strlen(sendBuffer);
+    if (send(client_fd, sendBuffer, len, 0) < 0) {
+      gracefulExit(client_fd, "send error", sendBuffer, receiveBuffer);
+    }
+    sleep(1);
+  }
+}
+
+void handleCmd(int client_fd, char *sendBuffer, char *receiveBuffer) {
+  FILE *fp = popen("ps aux | wc -l", "r");
+  if (!fp) {
+    gracefulExit(client_fd, "popen error", sendBuffer, receiveBuffer);
+  }
+  ssize_t len = fread(sendBuffer, 1, BUF_SIZE - 1, fp);
+  pclose(fp);
+
+  sendBuffer[len] = '\0';
+  // Prepend a label
+  char result[BUF_SIZE];
+  snprintf(result, BUF_SIZE, "Number of running processes: %s", sendBuffer);
+  if (send(client_fd, result, strlen(result), 0) < 0) {
+    gracefulExit(client_fd, "send error", sendBuffer, receiveBuffer);
+  }
+}
+
 void handleClient(int client_fd) {
   char *sendBuffer = malloc(BUF_SIZE);
   char *receiveBuffer = malloc(BUF_SIZE);
@@ -23,28 +55,25 @@ void handleClient(int client_fd) {
     gracefulExit(client_fd, "recv error", sendBuffer, receiveBuffer);
   }
   receiveBuffer[received] = '\0';
-  printf("[PID %d] received: %s\n", getpid(), receiveBuffer);
 
-  int n = 60;
-  while (n--) {
-    time_t t;
-    time(&t);
-    char *timeStr = ctime(&t);
-    strcpy(sendBuffer, timeStr);
-    ssize_t len = strlen(sendBuffer);
+  char greeting[64], service[64];
+  sscanf(receiveBuffer, "%s %s", greeting, service);
+  printf("[PID %d] received: %s | service: %s\n", getpid(), greeting, service);
 
-    if (send(client_fd, sendBuffer, len, 0) < 0) {
-      gracefulExit(client_fd, "send error", sendBuffer, receiveBuffer);
-    }
-    sleep(1);
+  if (strcmp(service, "TIME") == 0) {
+    handleTime(client_fd, sendBuffer, receiveBuffer);
+  } else if (strcmp(service, "CMD") == 0) {
+    handleCmd(client_fd, sendBuffer, receiveBuffer);
+  } else {
+    const char *err = "ERROR: unknown service\n";
+    send(client_fd, err, strlen(err), 0);
   }
 
   received = recv(client_fd, receiveBuffer, BUF_SIZE - 1, 0);
-  if (received <= 0) {
-    gracefulExit(client_fd, "recv error", sendBuffer, receiveBuffer);
+  if (received > 0) {
+    receiveBuffer[received] = '\0';
+    printf("[PID %d] received: %s\n", getpid(), receiveBuffer);
   }
-  receiveBuffer[received] = '\0';
-  printf("[PID %d] received: %s\n", getpid(), receiveBuffer);
 
   free(sendBuffer);
   free(receiveBuffer);
@@ -60,7 +89,8 @@ int main(void) {
     exit(EXIT_FAILURE);
   }
 
-  printf("Concurrent TCP server listening on port %d...\n", PORT);
+  printf("Concurrent multi-service TCP server on port %d...\n", PORT);
+  printf("Available services: TIME | CMD\n");
 
   struct sigaction sa;
   sa.sa_handler = SIG_DFL;
